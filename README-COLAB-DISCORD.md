@@ -7,12 +7,12 @@ Discord is a control plane only. It receives an image or ZIP, invokes the Rust h
 - One pipeline instance is held open for all pages in a job.
 - `!status` reports worker state.
 - Colab is an ephemeral worker; keep the bot token in Colab Secrets.
-- The runner currently uses Bear's local automatic ONNX ladder. It does not yet initialize the optional generative sidecar from desktop settings.
+- `!clean` uses Bear's existing automatic ONNX ladder. `!clean qwen` / `!clean-qwen` explicitly selects the local Qwen rung for text outside balloons; speech-bubble text remains on Fill. Qwen is never silently invoked by the automatic command.
 
 ## Local Qwen-Image
-Bear already contains a local sidecar supporting Qwen-Image-Edit-2511 through SDNQ. Its quantized weights are documented at about 18.16 GB before runtime overhead. The sidecar is separate from the ONNX ladder. The notebook intentionally does not download this large model: check the GPU VRAM and disk first. Headless Qwen activation still needs the same validated sidecar settings that the desktop app supplies; this runner does not claim Qwen is active yet.
+Bear already contains a local sidecar supporting Qwen-Image-Edit-2511 through SDNQ. Its quantized weights are documented at about 18.16 GB before runtime overhead. The sidecar is separate from the ONNX ladder. The notebook intentionally does not download this large model: check the GPU VRAM and disk first. The notebook includes an optional installer cell that calls Bear's own pinned `sidecar/bootstrap.py` with the exact Qwen checkpoint and LoRAs. After it completes, use `!clean qwen` or `!clean-qwen` with an attached image/ZIP. This is an explicit, slower mode rather than a new automatic classifier.
 
-The lightest-engine-first strategy already exists: Fill for flat paper, Manga-LaMa for texture/line art, then optional generative reconstruction for difficult regions. We should not add a second classifier/model-selection framework unless real tests show a routing gap.
+The default `!clean` path retains the existing lightest-engine-first strategy: Fill for flat paper and Manga-LaMa for texture/line art. Qwen is an opt-in path for complex artwork outside balloons. No extra classifier is introduced, so the design stays simple.
 
 ## Setup
 Open `notebooks/Bear_Discord_Colab.ipynb` in Colab, select a GPU runtime, add a Colab Secret named `DISCORD_BOT_TOKEN`, and run the cells in order. The notebook installs Linux build prerequisites, downloads Bear's pinned ONNX weights/runtime, compiles `bear-runner`, and starts the bot.
