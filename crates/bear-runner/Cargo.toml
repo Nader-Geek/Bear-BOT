@@ -1,0 +1,11 @@
+[package]
+name = "bear-runner"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+cleaner-core = { path = "../cleaner-core" }
+manga-cleaner = { path = "../../src-tauri" }
+anyhow.workspace = true
