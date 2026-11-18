@@ -87,7 +87,9 @@ async def clean(ctx):
                 return
             result = root / "bear-cleaned.zip"
             with zipfile.ZipFile(result, "w", zipfile.ZIP_DEFLATED) as z:
-                for p in sorted(output.glob("*.png")):
+                for p in sorted(output.iterdir()):
+                    if not p.is_file():
+                        continue
                     z.write(p, p.name)
             await ctx.reply(file=discord.File(result, filename="bear-cleaned.zip"))
             worker_status = "idle"
