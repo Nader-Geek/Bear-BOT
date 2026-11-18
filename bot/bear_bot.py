@@ -32,9 +32,14 @@ def safe_extract(src, dst):
 async def status(ctx):
     await ctx.reply("Bear worker: **" + worker_status + "**")
 
-@bot.command(name="clean")
-async def clean(ctx):
+@bot.command(name="clean", aliases=["clean-qwen"])
+async def clean(ctx, mode: str = "auto"):
     global worker_status
+    if mode.lower() not in ("auto", "qwen"):
+        await ctx.reply("Mode must be auto or qwen. Use !clean qwen for local Qwen-Image-Edit.")
+        return
+    if ctx.invoked_with == "clean-qwen":
+        mode = "qwen"
     if not ctx.message.attachments:
         await ctx.reply("Attach one image or a ZIP chapter, then send !clean.")
         return
@@ -70,7 +75,10 @@ async def clean(ctx):
                 shutil.copy2(p, flat / (str(i + 1).zfill(4) + p.suffix.lower()))
             output = root / "output"
             worker_status = "cleaning " + str(len(images)) + " page(s)"
-            proc = await asyncio.create_subprocess_exec(str(RUNNER), str(flat), str(output), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+            runner_args = [str(RUNNER), str(flat), str(output)]
+            if mode.lower() == "qwen":
+                runner_args.append("--qwen")
+            proc = await asyncio.create_subprocess_exec(*runner_args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
             last = ""
             while True:
                 line = await proc.stdout.readline()
@@ -97,6 +105,6 @@ async def clean(ctx):
 
 @bot.command(name="help")
 async def help_command(ctx):
-    await ctx.reply("Commands: !clean (attach image/ZIP), !status.")
+    await ctx.reply("Commands: !clean (attach image/ZIP), !clean qwen or !clean-qwen (use local Qwen on outside text), !status.")
 
 bot.run(TOKEN)
