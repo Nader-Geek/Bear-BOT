@@ -44,7 +44,8 @@ fn main() -> Result<()> {
         }
         let export = export_page(bytes, &patches, Target::SameAsSource).map_err(|e| anyhow!("export: {e}"))?;
         let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("page");
-        fs::write(output.join(format!("{:04}-{}.cleaned.png", index + 1, stem)), export.bytes)?;
+        let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("png");
+        fs::write(output.join(format!("{:04}-{}.cleaned.{}", index + 1, stem, ext)), export.bytes)?;
         println!("PROGRESS {}/{} cleaned={} untouched={}", index + 1, paths.len(), cleaned, untouched);
     }
     println!("DONE pages={} elapsed_seconds={:.2}", paths.len(), started.elapsed().as_secs_f64());
