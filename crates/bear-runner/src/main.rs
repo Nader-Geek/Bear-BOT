@@ -1,13 +1,13 @@
 use anyhow::{anyhow, Context, Result};
 use cleaner_core::{accel::Preference, export::{export_page, Target}, image::decode, patch::Patch, strip::{self, Strip}};
-use manga_cleaner_lib::run::{model_search_paths, Cleaner, PageContext, Pipeline, RegionOutcome, HIGHEST_LOCAL};
+use manga_cleaner_lib::run::{model_search_paths, Cleaner, EnginePick, PageContext, Pipeline, Picks, RegionOutcome, HIGHEST_LOCAL};
 use std::{env, fs, path::{Path, PathBuf}, time::Instant};
 
 fn main() -> Result<()> {
     let mut args = env::args().skip(1);
-    let input = PathBuf::from(args.next().ok_or_else(|| anyhow!("usage: bear-runner INPUT_DIR OUTPUT_DIR"))?);
+    let input = PathBuf::from(args.next().ok_or_else(|| anyhow!("usage: bear-runner INPUT_DIR OUTPUT_DIR [--qwen]"))?);
     let output = PathBuf::from(args.next().ok_or_else(|| anyhow!("usage: bear-runner INPUT_DIR OUTPUT_DIR"))?);
-    if args.next().is_some() { return Err(anyhow!("too many arguments")); }
+    let qwen = match args.next().as_deref() { None => false, Some("--qwen") => true, Some(other) => return Err(anyhow!("unknown option {other}")) };
     fs::create_dir_all(&output).context("create output directory")?;
     let models = env::var_os("BEAR_MODELS_DIR").map(PathBuf::from)
         .or_else(|| model_search_paths(None).into_iter().find(|p| p.join("comictextdetector.onnx").exists()))
@@ -27,6 +27,19 @@ fn main() -> Result<()> {
     let survey = strip::survey(&strip, |_| None);
     let started = Instant::now();
     let mut pipeline = Pipeline::open(&models, Preference::Automatic).map_err(|e| anyhow!("open Bear pipeline: {e}"))?;
+    if qwen {
+        let sidecar = env::var("MANGA_CLEANER_SIDECAR")
+            .map_err(|_| anyhow!("Qwen mode needs MANGA_CLEANER_SIDECAR pointing to the installed sidecar virtual environment"))?;
+        let settings = serde_json::json!({
+            "sidecarPath": sidecar,
+            "fluxModel": "qwen-image-edit-2511",
+            "fluxBackend": "sdnq"
+        });
+        pipeline = pipeline.with_model_preferences(&settings)
+            .map_err(|e| anyhow!("configure local Qwen sidecar: {e}"))?;
+        // Qwen is an explicit user-selected rung, never a silent automatic escalation.
+        pipeline = pipeline.with_picks(Picks { bubble: EnginePick::Fill, outside: EnginePick::Flux });
+    }
     for (index, (path, bytes)) in paths.iter().zip(sources.iter()).enumerate() {
         let context = PageContext { strip: &strip, joins: &survey.joins, segments: &survey.segments, placement: index, sources: &[] };
         let page_id = format!("page-{:04}", index + 1);
