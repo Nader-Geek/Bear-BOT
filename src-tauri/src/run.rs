@@ -2741,7 +2741,9 @@ impl Pipeline {
             || (self.detection_models.rt_full && self.remote_rt())
     }
 
-    fn with_model_preferences(mut self, settings: &serde_json::Value) -> Result<Pipeline, String> {
+    /// Apply the same validated model preferences used by the desktop host.
+    /// Exposed for the headless runner; the setting names and validation stay here.
+    pub fn with_model_preferences(mut self, settings: &serde_json::Value) -> Result<Pipeline, String> {
         self.detector.preference = model_preference_from(settings, "ctd")?;
         self.detector.key = session_key(registry::Kind::TextDetector, &self.detector.models, self.detector.preference);
         let host = cleaner_core::runtime::package::Platform::host();
