@@ -9,3 +9,4 @@ rust-version.workspace = true
 cleaner-core = { path = "../cleaner-core" }
 manga-cleaner = { path = "../../src-tauri" }
 anyhow.workspace = true
+serde_json.workspace = true
